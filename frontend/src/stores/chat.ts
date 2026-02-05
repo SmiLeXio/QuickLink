@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import { useAuthStore } from './auth'
 
-const API_URL = 'http://localhost:8000'
-const WS_URL = 'ws://localhost:8000/ws'
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:8000'
+const WS_URL = import.meta.env.PROD
+  ? `ws://${window.location.host}/api/ws`
+  : 'ws://localhost:8000/ws'
 
 interface User {
   id: number;

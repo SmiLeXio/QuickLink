@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:8000'
+// Use relative path for API to allow Nginx proxy
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:8000'
 
 interface User {
   id: number;
