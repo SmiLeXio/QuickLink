@@ -50,18 +50,43 @@ const handleSubmit = async () => {
   align-items: center;
   height: 100vh;
   background-color: #5865f2;
+  padding: 1rem;
 }
+
 .login-box {
   background: #313338;
   padding: 2rem;
   border-radius: 8px;
-  width: 300px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
-.mb-2 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 2rem; }
-.w-full { width: 100%; }
-.link { cursor: pointer; color: #00a8fc; font-size: 0.9rem; }
-.link:hover { text-decoration: underline; }
-h2 { text-align: center; color: white; margin-bottom: 1.5rem; }
+
+.mb-2 {
+  margin-bottom: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 2rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.link {
+  cursor: pointer;
+  color: #00a8fc;
+  font-size: 0.9rem;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+h2 {
+  text-align: center;
+  color: white;
+  margin-bottom: 1.5rem;
+}
 </style>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { Menu } from '@element-plus/icons-vue'
 
+const emit = defineEmits(['toggle-menu'])
 const chatStore = useChatStore()
 const messageInput = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -37,9 +39,12 @@ const formatTime = (isoString: string) => {
 <template>
     <div class="chat-area" v-if="chatStore.currentChannelId">
         <div class="chat-header">
+            <el-icon class="menu-btn mobile-only" @click="emit('toggle-menu')">
+                <Menu />
+            </el-icon>
             <span class="hashtag">#</span>
             <span class="channel-name">{{chatStore.channels.find(c => c.id === chatStore.currentChannelId)?.name
-            }}</span>
+                }}</span>
         </div>
 
         <div class="messages-container" ref="messagesContainer">
@@ -63,6 +68,12 @@ const formatTime = (isoString: string) => {
         </div>
     </div>
     <div class="chat-area empty" v-else>
+        <div class="mobile-menu-trigger mobile-only" @click="emit('toggle-menu')">
+            <el-icon size="40">
+                <Menu />
+            </el-icon>
+            <span>Open Menu</span>
+        </div>
         <p>Select a channel to start chatting</p>
     </div>
 </template>
@@ -140,6 +151,7 @@ const formatTime = (isoString: string) => {
     color: #dbdee1;
     margin-top: 4px;
     line-height: 1.375rem;
+    word-break: break-word;
 }
 
 .input-area {
@@ -166,5 +178,38 @@ input {
     justify-content: center;
     align-items: center;
     color: #949ba4;
+    flex-direction: column;
+}
+
+.mobile-only {
+    display: none;
+}
+
+.menu-btn {
+    margin-right: 16px;
+    cursor: pointer;
+    font-size: 24px;
+    color: #dbdee1;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block;
+    }
+
+    .mobile-menu-trigger {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        color: #dbdee1;
+    }
+
+    /* Adjust input area for mobile keyboard */
+    .input-area {
+        padding-bottom: 16px;
+    }
 }
 </style>
