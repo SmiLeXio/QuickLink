@@ -16,6 +16,15 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
+def update_user(db: Session, user_id: int, username: str = None):
+    user = get_user(db, user_id)
+    if user:
+        if username:
+            user.username = username
+        db.commit()
+        db.refresh(user)
+    return user
+
 def get_servers(db: Session, user_id: int):
     # Get servers the user is a member of OR owner of
     # For simplicity, we just return all servers the user is a member of
@@ -23,8 +32,11 @@ def get_servers(db: Session, user_id: int):
     user = get_user(db, user_id)
     return user.servers
 
+import uuid
+
 def create_server(db: Session, server: schemas.ServerCreate, user_id: int):
-    db_server = models.Server(name=server.name, owner_id=user_id)
+    invite_code = str(uuid.uuid4())
+    db_server = models.Server(name=server.name, owner_id=user_id, invite_code=invite_code)
     db.add(db_server)
     db.commit()
     db.refresh(db_server)
@@ -69,6 +81,22 @@ def join_server(db: Session, server_id: int, user_id: int):
             server.members.append(user)
             db.commit()
     return server
+
+def join_server_by_invite(db: Session, invite_code: str, user_id: int):
+    server = db.query(models.Server).filter(models.Server.invite_code == invite_code).first()
+    user = get_user(db, user_id)
+    if server and user:
+        if user not in server.members:
+            server.members.append(user)
+            db.commit()
+    return server
+
+def delete_server(db: Session, server_id: int):
+    db_server = db.query(models.Server).filter(models.Server.id == server_id).first()
+    if db_server:
+        db.delete(db_server)
+        db.commit()
+    return db_server
 
 def get_all_servers(db: Session):
     return db.query(models.Server).all()

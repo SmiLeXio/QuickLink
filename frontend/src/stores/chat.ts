@@ -31,6 +31,7 @@ interface Server {
   id: number;
   name: string;
   owner_id: number;
+  invite_code?: string;
 }
 
 export const useChatStore = defineStore('chat', {
@@ -38,6 +39,7 @@ export const useChatStore = defineStore('chat', {
     servers: [] as Server[],
     channels: [] as Channel[],
     messages: [] as Message[],
+    members: [] as User[],
     currentServerId: null as number | null,
     currentChannelId: null as number | null,
     socket: null as WebSocket | null,
@@ -62,8 +64,23 @@ export const useChatStore = defineStore('chat', {
       await this.fetchServers()
     },
 
-    async joinServer(serverId: number) {
-      await axios.post(`${API_URL}/servers/${serverId}/join`, {}, { headers: this.getHeaders() })
+    async deleteServer(serverId: number) {
+      await axios.delete(`${API_URL}/servers/${serverId}`, { headers: this.getHeaders() })
+      await this.fetchServers()
+      if (this.currentServerId === serverId) {
+        this.currentServerId = null
+        this.currentChannelId = null
+        this.channels = []
+        this.messages = []
+        this.members = []
+      }
+    },
+
+    async joinServer(inviteCode: string) {
+      await axios.post(`${API_URL}/servers/join`, null, {
+        params: { invite_code: inviteCode },
+        headers: this.getHeaders()
+      })
       await this.fetchServers()
     },
 
@@ -72,10 +89,17 @@ export const useChatStore = defineStore('chat', {
       this.currentChannelId = null
       this.channels = []
       this.messages = []
+      this.members = []
 
       try {
-        const res = await axios.get(`${API_URL}/servers/${serverId}/channels`, { headers: this.getHeaders() })
-        this.channels = res.data
+        const [channelsRes, membersRes] = await Promise.all([
+          axios.get(`${API_URL}/servers/${serverId}/channels`, { headers: this.getHeaders() }),
+          axios.get(`${API_URL}/servers/${serverId}/members`, { headers: this.getHeaders() })
+        ])
+
+        this.channels = channelsRes.data
+        this.members = membersRes.data
+
         if (this.channels.length > 0 && this.channels[0]) {
           this.selectChannel(this.channels[0].id)
         }

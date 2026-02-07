@@ -82,12 +82,13 @@ console.log("\n>>> [4/5] 上传后端文件...");
 // 注意: scp 没有 exclude 选项，这里简单起见上传整个文件夹，建议在服务器端处理忽略，或者使用 rsync
 // 如果本地有 rsync，优先使用 rsync
 try {
-    console.log("    尝试使用 rsync 上传后端 (排除 venv, __pycache__)...");
+    console.log("    尝试使用 rsync 上传后端 (排除 venv, __pycache__, *.db)...");
     run("rsync", [
         "-avz",
         "--exclude", "venv",
         "--exclude", "__pycache__",
         "--exclude", ".git",
+        "--exclude", "*.db",
         `${backendDir}/`,
         `${host}:${remoteBackend}/`
     ]);
@@ -95,9 +96,10 @@ try {
     console.log("    rsync 失败或未安装，回退到 scp (可能会上传不必要的文件)...");
     run("ssh", ["-o", "BatchMode=yes", host, `mkdir -p ${remoteUpload}/backend_new`]);
     run("scp", ["-r", `${backendDir}/.`, `${host}:${remoteUpload}/backend_new/`]);
+    // 在覆盖之前删除上传的 .db 文件，防止覆盖服务器上的数据库
     run("ssh", [
         "-o", "BatchMode=yes", host,
-        `bash -lc "set -euo pipefail; cp -r '${remoteUpload}/backend_new/.' '${remoteBackend}/'; rm -rf '${remoteUpload}/backend_new'"`
+        `bash -lc "set -euo pipefail; find '${remoteUpload}/backend_new' -name '*.db' -delete; cp -r '${remoteUpload}/backend_new/.' '${remoteBackend}/'; rm -rf '${remoteUpload}/backend_new'"`
     ]);
 }
 

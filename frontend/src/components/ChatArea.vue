@@ -32,7 +32,18 @@ const handleSend = async () => {
 
 const formatTime = (isoString: string) => {
     const date = new Date(isoString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const now = new Date()
+    const isToday = date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+    if (isToday) {
+        return timeStr
+    } else {
+        return `${date.toLocaleDateString()} ${timeStr}`
+    }
 }
 </script>
 
@@ -44,7 +55,7 @@ const formatTime = (isoString: string) => {
             </el-icon>
             <span class="hashtag">#</span>
             <span class="channel-name">{{chatStore.channels.find(c => c.id === chatStore.currentChannelId)?.name
-                }}</span>
+            }}</span>
         </div>
 
         <div class="messages-container" ref="messagesContainer">
@@ -63,7 +74,7 @@ const formatTime = (isoString: string) => {
         <div class="input-area">
             <div class="input-wrapper">
                 <input v-model="messageInput" @keyup.enter="handleSend"
-                    :placeholder="`Message #${chatStore.channels.find(c => c.id === chatStore.currentChannelId)?.name || 'unknown'}`" />
+                    :placeholder="`发送消息到 #${chatStore.channels.find(c => c.id === chatStore.currentChannelId)?.name || '未知频道'}`" />
             </div>
         </div>
     </div>
@@ -72,9 +83,9 @@ const formatTime = (isoString: string) => {
             <el-icon size="40">
                 <Menu />
             </el-icon>
-            <span>Open Menu</span>
+            <span>打开菜单</span>
         </div>
-        <p>Select a channel to start chatting</p>
+        <p>请选择一个频道开始聊天</p>
     </div>
 </template>
 

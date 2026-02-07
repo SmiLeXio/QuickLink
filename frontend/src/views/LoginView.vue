@@ -14,13 +14,13 @@ const handleSubmit = async () => {
     if (isRegister.value) {
       await auth.register(username.value, password.value)
       isRegister.value = false // Switch to login
-      alert("Registration successful! Please login.")
+      alert("注册成功！请登录。")
     } else {
       await auth.login(username.value, password.value)
       router.push('/')
     }
   } catch (e) {
-    alert("Error: " + e)
+    alert("错误: " + e)
   }
 }
 </script>
@@ -28,15 +28,15 @@ const handleSubmit = async () => {
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h2>{{ isRegister ? 'Register' : 'Login' }}</h2>
-      <el-input v-model="username" placeholder="Username" class="mb-2" />
-      <el-input v-model="password" type="password" placeholder="Password" class="mb-4" />
+      <h2>{{ isRegister ? '注册' : '登录' }}</h2>
+      <el-input v-model="username" placeholder="用户名" class="mb-2" />
+      <el-input v-model="password" type="password" placeholder="密码" class="mb-4" />
       <el-button type="primary" @click="handleSubmit" class="w-full">
-        {{ isRegister ? 'Register' : 'Login' }}
+        {{ isRegister ? '注册' : '登录' }}
       </el-button>
       <div class="mt-4 text-center">
         <a @click="isRegister = !isRegister" class="link">
-          {{ isRegister ? 'Already have an account? Login' : 'Need an account? Register' }}
+          {{ isRegister ? '已有账号？登录' : '没有账号？注册' }}
         </a>
       </div>
     </div>

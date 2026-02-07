@@ -80,3 +80,82 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Global Dark Theme for Element Plus Dialogs */
+.el-dialog {
+  background-color: #313338 !important;
+  border-radius: 4px !important;
+}
+
+.el-dialog__header {
+  margin-right: 0 !important;
+  padding: 16px !important;
+  background-color: #313338 !important;
+}
+
+.el-dialog__title {
+  color: #dbdee1 !important;
+  font-weight: bold !important;
+}
+
+.el-dialog__body {
+  padding: 0 16px 16px 16px !important;
+  color: #dbdee1 !important;
+  background-color: #313338 !important;
+}
+
+.el-dialog__headerbtn .el-dialog__close {
+  color: #b5bac1 !important;
+}
+
+.el-dialog__headerbtn .el-dialog__close:hover {
+  color: #dbdee1 !important;
+}
+
+/* Global Input Styles for Dark Theme */
+.el-input__wrapper {
+  background-color: #1e1f22 !important;
+  box-shadow: none !important;
+}
+
+.el-input__inner {
+  color: #dbdee1 !important;
+}
+
+/* Global Tabs Styles */
+.el-tabs__item {
+  color: #b5bac1 !important;
+}
+
+.el-tabs__item.is-active {
+  color: #ffffff !important;
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: #1e1f22 !important;
+}
+
+/* Global Button Styles in Dialog */
+.el-button {
+  background-color: #5865f2;
+  border-color: #5865f2;
+  color: white;
+}
+
+.el-button:hover, .el-button:focus {
+  background-color: #4752c4;
+  border-color: #4752c4;
+  color: white;
+}
+
+.el-button.is-link {
+  background-color: transparent;
+  border-color: transparent;
+  color: #dbdee1;
+}
+
+.el-button.is-link:hover {
+  background-color: transparent;
+  color: white;
+  text-decoration: underline;
+}

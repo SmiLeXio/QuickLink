@@ -6,9 +6,37 @@ from typing import List, Dict
 import json
 
 import models, schemas, crud, auth, database
+from sqlalchemy import text
 
-# Init DB
+# Init DB and Auto Migrate
 models.Base.metadata.create_all(bind=database.engine)
+
+def check_and_migrate_db(engine):
+    with engine.connect() as conn:
+        try:
+            # Check invite_code column in servers
+            result = conn.execute(text("PRAGMA table_info(servers)"))
+            columns = [row[1] for row in result.fetchall()]
+            
+            if 'invite_code' not in columns:
+                print("Migrating database: Adding invite_code to servers table...")
+                conn.execute(text("ALTER TABLE servers ADD COLUMN invite_code VARCHAR"))
+                conn.execute(text("CREATE UNIQUE INDEX ix_servers_invite_code ON servers (invite_code)"))
+                
+                # Backfill UUIDs
+                import uuid
+                rows = conn.execute(text("SELECT id FROM servers")).fetchall()
+                for row in rows:
+                    server_id = row[0]
+                    code = str(uuid.uuid4())
+                    conn.execute(text("UPDATE servers SET invite_code = :code WHERE id = :id"), {"code": code, "id": server_id})
+                
+                conn.commit()
+                print("Migration completed.")
+        except Exception as e:
+            print(f"Migration check failed or skipped: {e}")
+
+check_and_migrate_db(database.engine)
 
 app = FastAPI(title="QuickLink Discord Clone")
 
@@ -99,6 +127,15 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+@app.patch("/users/me", response_model=schemas.User)
+def update_user_me(user_update: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if user_update.username:
+        # Check if username exists
+        existing_user = crud.get_user_by_username(db, user_update.username)
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Username already taken")
+    return crud.update_user(db, current_user.id, username=user_update.username)
+
 # --- Server/Channel Routes ---
 @app.get("/servers", response_model=List[schemas.Server])
 def read_servers(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -112,12 +149,34 @@ def read_all_servers(db: Session = Depends(get_db)):
 def create_server(server: schemas.ServerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return crud.create_server(db=db, server=server, user_id=current_user.id)
 
-@app.post("/servers/{server_id}/join")
-def join_server(server_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    server = crud.join_server(db, server_id, current_user.id)
+@app.post("/servers/join")
+def join_server(
+    invite_code: str = None, 
+    server_id: int = None,
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    server = None
+    if invite_code:
+        server = crud.join_server_by_invite(db, invite_code, current_user.id)
+    elif server_id:
+        server = crud.join_server(db, server_id, current_user.id)
+    else:
+        raise HTTPException(status_code=400, detail="Either invite_code or server_id is required")
+        
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found or invalid invite code")
+    return {"status": "joined", "server": server.name}
+
+@app.delete("/servers/{server_id}")
+def delete_server(server_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    server = db.query(models.Server).filter(models.Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
-    return {"status": "joined", "server": server.name}
+    if server.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    crud.delete_server(db=db, server_id=server_id)
+    return {"status": "deleted"}
 
 @app.post("/servers/{server_id}/channels", response_model=schemas.Channel)
 def create_channel(server_id: int, channel: schemas.ChannelCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -133,6 +192,16 @@ def create_channel(server_id: int, channel: schemas.ChannelCreate, db: Session =
 @app.get("/servers/{server_id}/channels", response_model=List[schemas.Channel])
 def read_channels(server_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return crud.get_server_channels(db, server_id=server_id)
+
+@app.get("/servers/{server_id}/members", response_model=List[schemas.User])
+def read_server_members(server_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    server = db.query(models.Server).filter(models.Server.id == server_id).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    # Check if user is member
+    if current_user not in server.members:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return server.members
 
 # --- Message Routes ---
 @app.get("/channels/{channel_id}/messages", response_model=List[schemas.Message])
@@ -154,17 +223,14 @@ async def create_message(channel_id: int, message: schemas.MessageCreate, db: Se
         server = channel.server
         member_ids = [m.id for m in server.members]
         
-        # Format message for WS
+        # Format message for WS using Pydantic schema to ensure correct serialization (e.g. timezone)
+        # Assign sender manually to avoid extra DB query and ensure it's present
+        db_message.sender = current_user
+        message_schema = schemas.Message.model_validate(db_message)
+        
         ws_data = {
             "type": "new_message",
-            "message": {
-                "id": db_message.id,
-                "content": db_message.content,
-                "user_id": db_message.user_id,
-                "channel_id": db_message.channel_id,
-                "timestamp": db_message.timestamp.isoformat(),
-                "sender": {"username": current_user.username}
-            }
+            "message": json.loads(message_schema.model_dump_json())
         }
         await manager.broadcast_to_server_members(ws_data, member_ids)
         

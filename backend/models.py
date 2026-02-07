@@ -27,6 +27,7 @@ class Server(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    invite_code = Column(String, unique=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="owned_servers")

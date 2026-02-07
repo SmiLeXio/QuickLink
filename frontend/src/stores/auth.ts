@@ -34,6 +34,13 @@ export const useAuthStore = defineStore('auth', {
     async register(username: string, password: string) {
       await axios.post(`${API_URL}/register`, { username, password })
     },
+    async updateProfile(username: string) {
+      const res = await axios.patch(`${API_URL}/users/me`, { username }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      this.user = res.data
+      localStorage.setItem('user', JSON.stringify(this.user))
+    },
     logout() {
       this.token = ''
       this.user = null
